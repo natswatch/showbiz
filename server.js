@@ -52,9 +52,9 @@ const selectTask = () => {
         } else if (option === 'Add a Department') {
             return inquirer.prompt(newDepartmentPrompt);
         } else if (option === 'Update an Employee Role') {
-            return inquirer.prompt(updateEmployeePrompt); 
+            return updateRolePrompts(); 
         } else {
-            return;
+            process.exit(1);
         }
     })
     .catch(err => {
@@ -172,6 +172,19 @@ const newEmployeePrompts = () => {
     })
 };
 
+const getEmployees = () => {
+    var result = [];
+    db.query(`
+    SELECT CONCAT(first_name, ' ',last_name) AS name 
+    FROM employees`, function(err, res){
+        if(err){
+            throw(err);
+        }
+        result.push(JSON.parse(JSON.stringify(res)));
+        console.log(result);
+    });
+    
+}
 
 
 
@@ -187,11 +200,11 @@ const db = mysql.createConnection({
 
 db.connect(err => {
 if (err) throw err;
-console.log('connected as id ' + db.threadId);
+
 })
 
 
-selectTask();
+getEmployees();
 
 module.exports = db;
 exports.selectTask = selectTask;

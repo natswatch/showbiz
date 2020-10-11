@@ -173,9 +173,9 @@ const newEmployeePrompts = () => {
     })
 };
 
-const getEmployees = async () => {
+const getEmployees = () => {
     var result = []
-    let promise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         db.query(`
     SELECT CONCAT(first_name, ' ',last_name) AS name FROM employees`,
             function (err, res) {
@@ -188,13 +188,11 @@ const getEmployees = async () => {
                 resolve(result);
             });
     });
-
-    let finished = await promise
-    console.log(finished);
 }
 
-
-
+    // let finished = await promise
+    // return finished;
+// }
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -205,13 +203,19 @@ const db = mysql.createConnection({
 });
 
 
-db.connect(err => {
-if (err) throw err;
+// db.connect(err => {
+// if (err) throw err;
 
-})
+// })
+db.connect(async function (err) {
+    if (err) throw err;
+    employeeArray = await getEmployees();
+    console.log(employeeArray);
+});
 
 
-getEmployees();
+
+// console.log(getEmployees());
 module.exports = db;
 exports.selectTask = selectTask;
 

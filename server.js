@@ -6,6 +6,7 @@ const Departments = require('./lib/Departments');
 // const Departments = require('./lib/Departments');
 // const Roles = require('./lib/Roles');
 require('console.table');
+var employeeArray = [];
 
 console.log(`
                           _                                                
@@ -172,18 +173,24 @@ const newEmployeePrompts = () => {
     })
 };
 
-const getEmployees = () => {
-    var result = [];
-    db.query(`
-    SELECT CONCAT(first_name, ' ',last_name) AS name 
-    FROM employees`, function(err, res){
-        if(err){
-            throw(err);
-        }
-        result.push(JSON.parse(JSON.stringify(res)));
-        console.log(result);
+const getEmployees = async () => {
+    var result = []
+    let promise = new Promise((resolve, reject) => {
+        db.query(`
+    SELECT CONCAT(first_name, ' ',last_name) AS name FROM employees`,
+            function (err, res) {
+                if (err) {
+                    throw (err);
+                }
+                res.forEach(i => {
+                    result.push(i.name)
+                })
+                resolve(result);
+            });
     });
-    
+
+    let finished = await promise
+    console.log(finished);
 }
 
 
@@ -205,7 +212,6 @@ if (err) throw err;
 
 
 getEmployees();
-
 module.exports = db;
 exports.selectTask = selectTask;
 

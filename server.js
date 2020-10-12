@@ -53,7 +53,7 @@ const selectTask = () => {
         } else if (option === 'Add a Department') {
             return inquirer.prompt(newDepartmentPrompt);
         } else if (option === 'Update an Employee Role') {
-            return updateRolePrompts(); 
+            return updateEmployeeRole(); 
         } else {
             process.exit(1);
         }
@@ -63,7 +63,20 @@ const selectTask = () => {
     });
 };
 
-const newEmployeePrompts = () => {
+const newEmployeePrompts = async () => {
+    
+    var employees = await getEmployees();
+    var updatedList = employees.map(i => {
+        return {
+            name: i.name,
+            value: i.id
+        }
+    });
+    updatedList.push({
+        name: 'None',
+        value: 0
+    })
+    
      inquirer.prompt([
         {   
             type: 'input',
@@ -129,43 +142,7 @@ const newEmployeePrompts = () => {
             type: 'list',
             message: "Select Employee's Manager:",
             name: 'managerID',
-            choices: [
-                { 
-                    name: 'None',
-                    value: null
-                 },
-                 { 
-                    name: 'John Doe',
-                    value: 1
-                 },
-                 { 
-                    name: 'Mike Chan',
-                    value: 2
-                 },
-                 { 
-                    name: 'Ashley Rodriguez',
-                    value: 3
-                 },
-                 { 
-                    name: 'Kevin Tupik',
-                    value: 4
-                 },
-                 { 
-                    name: 'Malia Brown',
-                    value: 5
-                 },
-                 { 
-                    name: 'Sarah Lourd',
-                    value: 6
-                 },
-                 { 
-                    name: 'Tom Allen',
-                    value: 7
-                 },
-                 { 
-                    name: 'Christian Eckonridge',
-                    value: 8
-                 }]
+            choices: updatedList
         }
     ]).then(function(answers){
         const empData = new Employees(db);
@@ -174,25 +151,66 @@ const newEmployeePrompts = () => {
 };
 
 const getEmployees = () => {
-    var result = []
     return new Promise((resolve, reject) => {
         db.query(`
-    SELECT CONCAT(first_name, ' ',last_name) AS name FROM employees`,
+    SELECT id, CONCAT(first_name, ' ',last_name) AS name FROM employees`,
             function (err, res) {
                 if (err) {
                     throw (err);
                 }
-                res.forEach(i => {
-                    result.push(i.name)
-                })
-                resolve(result);
+                resolve(res)
             });
     });
 }
 
-    // let finished = await promise
-    // return finished;
-// }
+const getRoles = () => {
+    return new Promise((resolve, reject) => {
+        db.query(`
+    SELECT id, title FROM roles`,
+            function (err, res) {
+                if (err) {
+                    throw (err);
+                }
+                resolve(res)
+            });
+    });
+}
+
+const updateEmployeeRole = async () => {
+    var employees = await getEmployees();
+    var updatedList = employees.map(i => {
+        return {
+            name: i.name,
+            value: i.id
+        }
+    });
+
+    var roles = await getRoles();
+    var rolesList = roles.map(i => {
+        return {
+            name: i.title,
+            value: i.id
+        }
+    });
+
+    inquirer.prompt([
+        {   
+            type: 'list',
+            message: "Select the employee you would like to update",
+            name: 'id',
+            choices: updatedList
+        },
+        {
+            type: 'list',
+            message: "Select their new role",
+            name: 'role',
+            choices: rolesList
+        }
+    ]).then(function(answers){
+        const empData = new Employees(db);
+        return empData.updateEmployeeRole(answers);
+    })
+}
 
 const db = mysql.createConnection({
     host: 'localhost',
@@ -202,27 +220,11 @@ const db = mysql.createConnection({
     database: 'workplace_db'
 });
 
-
-// db.connect(err => {
-// if (err) throw err;
-
-// })
-db.connect(async function (err) {
+db.connect(err => {
     if (err) throw err;
-    employeeArray = await getEmployees();
-    console.log(employeeArray);
-});
+})
 
+selectTask();
 
-
-// console.log(getEmployees());
 module.exports = db;
 exports.selectTask = selectTask;
-
-
-// sql for getting ALL employees 
-// SELECT emp1.id, emp1.first_name, emp1.last_name, title, dept_name AS department,CONCAT(emp2.first_name,' ',emp2.last_name) AS manager
-// FROM employees emp1
-// LEFT JOIN roles ON emp1.role_id = roles.id
-// LEFT JOIN departments ON emp1.role_id = departments.id
-// LEFT JOIN employees emp2 ON emp1.manager_id = emp2.id;

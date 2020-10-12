@@ -3,10 +3,7 @@ const inquirer = require('inquirer');
 const Employees = require('./lib/Employees');
 const Roles = require('./lib/Roles');
 const Departments = require('./lib/Departments');
-// const Departments = require('./lib/Departments');
-// const Roles = require('./lib/Roles');
 require('console.table');
-var employeeArray = [];
 
 console.log(`
                           _                                                
@@ -18,6 +15,7 @@ console.log(`
 
 `);
 
+// main menu prompts
 const selectTask = () => {
     return inquirer.prompt ({
         type: 'list',
@@ -40,22 +38,29 @@ const selectTask = () => {
         if (option === 'View All Employees') {
             const empData = new Employees(db);
             return empData.viewAllEmployees();
+
         } else if (option === 'View All Roles') {
             const roleData = new Roles(db);
             return roleData.viewAllRoles();
+
         } else if (option === 'View All Departments') {
             const deptData = new Departments(db);
             return deptData.viewAllDepartments();
+
         } else if (option === 'Add an Employee') {
             return newEmployeePrompts();
+
         } else if (option === 'Add a Role') {
-            return inquirer.prompt(newRolePrompts);
+            return newRolePrompts();
+
         } else if (option === 'Add a Department') {
-            return inquirer.prompt(newDepartmentPrompt);
+            return newDepartmentPrompt();
+
         } else if (option === 'Update an Employee Role') {
             return updateEmployeeRole(); 
+
         } else {
-            process.exit(1);
+            return;
         }
     })
     .catch(err => {
@@ -63,8 +68,11 @@ const selectTask = () => {
     });
 };
 
+// new prompts when user selects to add a new employee
 const newEmployeePrompts = async () => {
     
+    // function awaits on promise which checks for 
+    // an updated list of employees
     var employees = await getEmployees();
     var updatedList = employees.map(i => {
         return {
@@ -72,12 +80,22 @@ const newEmployeePrompts = async () => {
             value: i.id
         }
     });
+    //adds NONE to the list of choices when 
+    //prompted to select a manager
     updatedList.push({
         name: 'None',
         value: 0
     })
+
+    var roles = await getRoles();
+    var rolesList = roles.map(i => {
+        return {
+            name: i.title,
+            value: i.id
+        }
+    });
     
-     inquirer.prompt([
+    inquirer.prompt([
         {   
             type: 'input',
             message: "What is the employee's first name?",
@@ -108,35 +126,7 @@ const newEmployeePrompts = async () => {
             type: 'list',
             message: "Select Employee's role:",
             name: 'roleID',
-            choices: [
-                { 
-                    name: 'Salesperson',
-                    value: 1
-                },
-                { 
-                    name: 'Sales Lead',
-                    value: 2
-                }, 
-                { 
-                    name: 'Software Engineer',
-                    value: 3
-                }, 
-                { 
-                    name: 'Lead Engineer',
-                    value: 4
-                }, 
-                { 
-                    name: 'Accountant',
-                    value: 5
-                },
-                { 
-                    name: 'Lawyer',
-                    value: 6
-                },
-                { 
-                    name: 'Legal Team Lead',
-                    value: 7
-                }] 
+            choices: rolesList 
         },
         {
             type: 'list',
@@ -145,37 +135,61 @@ const newEmployeePrompts = async () => {
             choices: updatedList
         }
     ]).then(function(answers){
+        // class instance to use function from Employees.js
         const empData = new Employees(db);
         return empData.addEmployee(answers);
     })
 };
 
-const getEmployees = () => {
-    return new Promise((resolve, reject) => {
-        db.query(`
-    SELECT id, CONCAT(first_name, ' ',last_name) AS name FROM employees`,
-            function (err, res) {
-                if (err) {
-                    throw (err);
-                }
-                resolve(res)
-            });
-    });
+// new prompts when user selects to add a new role
+const newRolePrompts = async () => {
+    
+    var departments = await getDepartments();
+    var deptsList = departments.map(i => {
+        return {
+            name: i.dept_name,
+            value: i.id
+        }
+    })
+    inquirer.prompt ([
+        {
+            type: 'input',
+            message: "What is the name of the role you'd like to add?",
+            name: 'name'
+        },
+        {
+            type: 'input',
+            message: "Please enter the salary",
+            name: 'salary'
+        },
+        {
+            type: 'list',
+            message: "Which is this new role's department?",
+            name: 'department',
+            choices: deptsList
+        }
+    ]).then(function(answers){
+        const empData = new Roles(db);
+        return empData.addRole(answers);
+    })
 }
 
-const getRoles = () => {
-    return new Promise((resolve, reject) => {
-        db.query(`
-    SELECT id, title FROM roles`,
-            function (err, res) {
-                if (err) {
-                    throw (err);
-                }
-                resolve(res)
-            });
-    });
+// new prompts when user selects to add a new department
+const newDepartmentPrompt =() => {
+    inquirer.prompt ([
+        {
+            type: 'input',
+            message: "What is the name of the department you'd like to add?",
+            name: 'name'
+        }
+    ]).then(function(answer){
+        const deptData = new Departments(db);
+        return deptData.addDepartment(answer);
+    })
 }
 
+
+// new prompts when employee selects to update an employee's role
 const updateEmployeeRole = async () => {
     var employees = await getEmployees();
     var updatedList = employees.map(i => {
@@ -210,6 +224,48 @@ const updateEmployeeRole = async () => {
         const empData = new Employees(db);
         return empData.updateEmployeeRole(answers);
     })
+}
+
+// checks for an up-to-date list of employees
+const getEmployees = () => {
+    return new Promise((resolve, reject) => {
+        db.query(`
+    SELECT id, CONCAT(first_name, ' ',last_name) AS name FROM employees`,
+            function (err, res) {
+                if (err) {
+                    throw (err);
+                }
+                resolve(res)
+            });
+    });
+}
+
+// checks for an up-to-date list of roles
+const getRoles = () => {
+    return new Promise((resolve, reject) => {
+        db.query(`
+    SELECT id, title FROM roles`,
+            function (err, res) {
+                if (err) {
+                    throw (err);
+                }
+                resolve(res)
+            });
+    });
+}
+
+// checks for an up-to-date list of departments
+const getDepartments = () => {
+    return new Promise((resolve, reject) => {
+        db.query(`
+    SELECT depts.* FROM depts`,
+            function (err, res) {
+                if (err) {
+                    throw (err);
+                }
+                resolve(res)
+            });
+    });
 }
 
 const db = mysql.createConnection({
